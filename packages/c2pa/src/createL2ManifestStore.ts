@@ -118,8 +118,10 @@ export async function createL2ManifestStore(
           }
         : null,
       claimGenerator: {
-        value: activeManifest.claimGenerator,
-        product: selectFormattedGenerator(activeManifest),
+        value:
+          activeManifest.claimGenerator ?? 'FIXME: missing claim generator',
+        product:
+          selectFormattedGenerator(activeManifest) ?? 'FIXME: invalid product',
       },
       producer: producer
         ? {

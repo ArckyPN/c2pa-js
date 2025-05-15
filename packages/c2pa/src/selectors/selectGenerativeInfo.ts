@@ -71,7 +71,7 @@ export function selectGenerativeInfo(
           {
             assertion,
             type: 'legacy',
-            softwareAgent: { name: softwareAgent },
+            softwareAgent: { name: softwareAgent, version },
           },
         ];
       }
@@ -98,8 +98,11 @@ export function selectGenerativeInfo(
             // for 3rd party models, we need to check the parameters
             if (action.action === 'c2pa.opened' && parameters) {
               const paramsDigitalSourceType =
+                // @ts-ignore
                 parameters['com.adobe.digitalSourceType'];
+              // @ts-ignore
               const paramsSoftwareAgent = parameters['com.adobe.details'];
+              // @ts-ignore
               const provider = parameters['com.adobe.type'];
 
               if (
@@ -184,7 +187,7 @@ export function selectGenerativeSoftwareAgents(
 
   //if there are undefined software agents remove them from the array
 
-  return softwareAgents;
+  return softwareAgents.filter((value) => !!value) as string[];
 }
 
 /**

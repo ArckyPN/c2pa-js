@@ -7,7 +7,7 @@
 
 // See https://github.com/rustwasm/wasm-bindgen/issues/2774
 #![allow(clippy::unused_unit)]
-use cawg_identity::{
+use c2pa::identity::{
     claim_aggregation::IcaSignatureVerifier, x509::X509SignatureVerifier, BuiltInSignatureVerifier,
     IdentityAssertion,
 };
@@ -25,7 +25,8 @@ use error::Error;
 use js_sys::Error as JsSysError;
 use js_sys::Reflect;
 use manifest_store::{
-    get_manifest_store_data, get_manifest_store_data_from_manifest_and_asset_bytes,
+    get_manifest_store_data, get_manifest_store_data_from_fragment,
+    get_manifest_store_data_from_manifest_and_asset_bytes, get_manifest_store_from_rolling_hash,
 };
 use util::log_time;
 
@@ -47,6 +48,20 @@ export function getManifestStoreFromManifestAndAsset(
     mimeType: string,
     settings?: string
 ): Promise<AssetReport>;
+
+export function getManifestStoreFromFragment(
+    initBuffer: ArrayBuffer,
+    fragmentBuffer: ArrayBuffer,
+    mimeType: string,
+    settings?: string
+): Promise<AssetReport>;
+
+export function getManifestStoreFromRollingHash(
+    fragmentBuffer: ArrayBuffer,
+    previousHash: ArrayBuffer,
+    rollingHash: ArrayBuffer,
+    settings?: string
+): Promise<boolean>;
 "#;
 
 #[wasm_bindgen(start)]
@@ -79,7 +94,7 @@ fn serde_error_as_js_error(err: serde_json::Error) -> JsSysError {
 
 #[derive(Serialize)]
 struct AssetReport {
-    manifest_store: c2pa::ManifestStore,
+    manifest_store: c2pa::Reader,
     cawg_json: String,
 }
 
@@ -135,18 +150,19 @@ pub async fn get_manifest_store_from_manifest_and_asset(
 }
 
 async fn get_serialized_report_with_cawg_from_manifest_store(
-    manifest_store: c2pa::ManifestStore,
+    manifest_store: c2pa::Reader,
 ) -> Result<JsValue, JsSysError> {
     let verifier = BuiltInSignatureVerifier {
         ica_verifier: IcaSignatureVerifier {},
         x509_verifier: X509SignatureVerifier {},
     };
-    let ia_summary = IdentityAssertion::summarize_manifest_store(
+    let ia_summary = IdentityAssertion::summarize_from_reader(
         &manifest_store,
         &mut Default::default(),
         &verifier,
     )
     .await;
+
     let ia_json = serde_json::to_string(&ia_summary).map_err(serde_error_as_js_error)?;
 
     let report = AssetReport {
@@ -161,4 +177,55 @@ async fn get_serialized_report_with_cawg_from_manifest_store(
         .map_err(as_js_error)?;
 
     Ok(js_value)
+}
+
+#[wasm_bindgen(js_name = getManifestStoreFromFragment, skip_typescript)]
+pub async fn get_manifest_store_from_fragment(
+    init_buf: JsValue,
+    fragment_buf: JsValue,
+    mime_type: String,
+    settings: Option<String>,
+) -> Result<JsValue, JsSysError> {
+    let init: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(init_buf)
+        .map_err(Error::SerdeInput)
+        .map_err(as_js_error)?;
+    let fragment: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(fragment_buf)
+        .map_err(Error::SerdeInput)
+        .map_err(as_js_error)?;
+    let result =
+        get_manifest_store_data_from_fragment(&init, &fragment, &mime_type, settings.as_deref())
+            .await
+            .map_err(as_js_error)?;
+
+    let js_value = get_serialized_report_with_cawg_from_manifest_store(result).await?;
+
+    Ok(js_value)
+}
+
+#[wasm_bindgen(js_name = getManifestStoreFromRollingHash, skip_typescript)]
+pub async fn get_manifest_from_rolling_hash(
+    fragment_buf: JsValue,
+    previous_hash: JsValue,
+    rolling_hash: JsValue,
+    settings: Option<String>,
+) -> Result<JsValue, JsSysError> {
+    let fragment: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(fragment_buf)
+        .map_err(Error::SerdeInput)
+        .map_err(as_js_error)?;
+    let previous_hash: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(previous_hash)
+        .map_err(Error::SerdeInput)
+        .map_err(as_js_error)?;
+    let rolling_hash: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(rolling_hash)
+        .map_err(Error::SerdeInput)
+        .map_err(as_js_error)?;
+    let result = get_manifest_store_from_rolling_hash(
+        &fragment,
+        &previous_hash,
+        &rolling_hash,
+        settings.as_deref(),
+    )
+    .await
+    .map_err(as_js_error)?;
+
+    Ok(JsValue::from(result))
 }

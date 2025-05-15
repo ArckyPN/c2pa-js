@@ -61,7 +61,7 @@
     "react-dom": "^16.13.1",
     "rollup-plugin-postcss": "~4.0.2",
     "postcss": "~8.4.12",
-    "node-sass": "~7.0.1",
+    "node-sass": "~8.0.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@rollup/plugin-commonjs": "~22.0.0",
     "eslint-plugin-import": "^2.26.0",

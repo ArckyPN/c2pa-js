@@ -17,6 +17,8 @@ import {
   AssetReport,
   getManifestStoreFromArrayBuffer,
   getManifestStoreFromManifestAndAsset,
+  getManifestStoreFromFragment,
+  getManifestStoreFromRollingHash,
   default as initToolkit,
 } from '@contentauth/toolkit';
 
@@ -64,6 +66,31 @@ const worker = {
     } catch (err) {
       return { found: false };
     }
+  },
+  async getFragmentReport(
+    wasm: WebAssembly.Module,
+    init: ArrayBuffer,
+    fragment: ArrayBuffer,
+    type: string,
+    settings?: string,
+  ): Promise<AssetReport> {
+    await initToolkit(wasm);
+    return getManifestStoreFromFragment(init, fragment, type, settings);
+  },
+  async getRollingHashFragmentReport(
+    wasm: WebAssembly.Module,
+    fragment: ArrayBuffer,
+    previousHash: ArrayBuffer,
+    rollingHash: ArrayBuffer,
+    settings?: string,
+  ): Promise<boolean> {
+    await initToolkit(wasm);
+    return getManifestStoreFromRollingHash(
+      fragment,
+      previousHash,
+      rollingHash,
+      settings,
+    );
   },
 };
 

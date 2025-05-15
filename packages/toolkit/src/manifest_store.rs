@@ -5,17 +5,20 @@
 // accordance with the terms of the Adobe license agreement accompanying
 // it.
 use crate::error::{Error, Result};
-use c2pa::{settings, ManifestStore};
+use c2pa::{settings, Reader};
+
+use std::io::Cursor;
 
 pub async fn get_manifest_store_data(
     data: &[u8],
     mime_type: &str,
     settings: Option<&str>,
-) -> Result<ManifestStore> {
+) -> Result<Reader> {
     if let Some(settings) = settings {
         settings::load_settings_from_str(settings, "json").map_err(Error::from)?;
     }
-    ManifestStore::from_bytes_async(mime_type, data, true)
+    let mut data = Cursor::new(data);
+    Reader::from_stream_async(mime_type, &mut data)
         .await
         .map_err(Error::from)
 }
@@ -25,13 +28,47 @@ pub async fn get_manifest_store_data_from_manifest_and_asset_bytes(
     format: &str,
     asset_bytes: &[u8],
     settings: Option<&str>,
-) -> Result<ManifestStore> {
+) -> Result<Reader> {
     if let Some(settings) = settings {
         settings::load_settings_from_str(settings, "json").map_err(Error::from)?;
     }
-    ManifestStore::from_manifest_and_asset_bytes_async(manifest_bytes, format, asset_bytes)
+    let mut asset = Cursor::new(asset_bytes);
+    Reader::from_manifest_data_and_stream_async(manifest_bytes, format, &mut asset)
         .await
         .map_err(Error::from)
+}
+
+pub async fn get_manifest_store_data_from_fragment(
+    init_bytes: &[u8],
+    fragment_bytes: &[u8],
+    mime_type: &str,
+    settings: Option<&str>,
+) -> Result<Reader> {
+    if let Some(settings) = settings {
+        settings::load_settings_from_str(settings, "json").map_err(Error::from)?;
+    }
+    let mut init = Cursor::new(init_bytes);
+    let mut fragment = Cursor::new(fragment_bytes);
+    Reader::from_fragment_async(mime_type, &mut init, &mut fragment)
+        .await
+        .map_err(Error::from)
+}
+
+pub async fn get_manifest_store_from_rolling_hash(
+    fragment_bytes: &[u8],
+    previous_hash: &[u8],
+    rolling_hash: &[u8],
+    settings: Option<&str>,
+) -> Result<bool> {
+    if let Some(settings) = settings {
+        settings::load_settings_from_str(settings, "json").map_err(Error::from)?;
+    }
+    let mut fragment = Cursor::new(fragment_bytes);
+    Ok(Reader::from_rolling_hash_memory_hack(
+        &mut fragment,
+        rolling_hash,
+        previous_hash,
+    ))
 }
 
 #[cfg(test)]

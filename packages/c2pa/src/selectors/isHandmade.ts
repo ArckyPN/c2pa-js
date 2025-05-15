@@ -29,15 +29,16 @@ export function isHandmadeManifest(manifest: Manifest): boolean {
 
   const actionsHandmade =
     actionsV2.length > 0 &&
-    actionsV2.every(({ data }) => {
-      const handmadeTemplate = !!data.templates?.find(
+    actionsV2.every((value) => {
+      if (!value) return false; // TODO dunno if this is good
+      const handmadeTemplate = !!value.data.templates?.find(
         (template) =>
           template.action === '*' &&
           template.digitalSourceType ===
             'http://cv.iptc.org/newscodes/digitalsourcetype/humanEdits',
       );
 
-      return data.allActionsIncluded && handmadeTemplate;
+      return value.data.allActionsIncluded && handmadeTemplate;
     });
 
   return actionsHandmade;

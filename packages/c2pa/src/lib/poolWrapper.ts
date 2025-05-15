@@ -43,6 +43,10 @@ export async function createPoolWrapper(
     getReportFromAssetAndManifestBuffer: async (...args) =>
       workerPool.execute('getReportFromAssetAndManifestBuffer', args),
     scanInput: async (...args) => workerPool.execute('scanInput', args),
+    getFragmentReport: async (...args) =>
+      workerPool.execute('getFragmentReport', args),
+    getRollingHashFragmentReport: async (...args) =>
+      workerPool.execute('getRollingHashFragmentReport', args),
   };
 
   return {

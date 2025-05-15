@@ -149,6 +149,31 @@ export interface C2pa {
   ): Promise<C2paReadResult[]>;
 
   /**
+   * Process a fragmented mp4 video
+   *
+   * @param init - Initial data
+   * @param fragment - Fragment data
+   */
+  readFragment(
+    init: Blob,
+    fragment: ArrayBuffer,
+    options?: C2paReadOptions,
+  ): Promise<C2paReadResult>;
+
+  /**
+   * Process a fragmented mp4 video with rolling hash
+   *
+   * @param init - Initial data
+   * @param fragment - Fragment data
+   */
+  readRollingHash(
+    fragment: ArrayBuffer,
+    previousHash: Uint8Array,
+    rollingHash: Uint8Array,
+    options?: C2paReadOptions,
+  ): Promise<boolean>;
+
+  /**
    * Disposer function to clean up the underlying worker pool and any other disposable resources
    */
   dispose: () => void;
@@ -262,9 +287,78 @@ export async function createC2pa(config: C2paConfig): Promise<C2pa> {
   const readAll: C2pa['readAll'] = async (inputs, options) =>
     Promise.all(inputs.map((input) => read(input, options)));
 
+  const readFragment: C2pa['readFragment'] = async (init, fragment, opts) => {
+    const jobId = ++jobCounter;
+
+    dbgTask('[%s] Reading from init and fragment', jobId, init, fragment);
+
+    const source = await createSource(downloader, init);
+    const settings = formatSettings(opts?.settings ?? config.settings);
+
+    try {
+      const initBuf = await init.arrayBuffer();
+      const result = await pool.getFragmentReport(
+        wasm,
+        initBuf,
+        fragment,
+        init.type,
+        settings,
+      );
+      const cawg = deserializeCawgString(result.cawg_json);
+
+      dbgTask('[%s] Received worker result', jobId, result);
+
+      return {
+        manifestStore: createManifestStore(result.manifest_store, cawg),
+        source,
+      };
+    } catch (err: any) {
+      const manifestStore = await handleErrors(
+        source,
+        err,
+        pool,
+        wasm,
+        config,
+        settings,
+      );
+
+      return {
+        manifestStore,
+        source,
+      };
+    }
+  };
+
+  const readRollingHash: C2pa['readRollingHash'] = async (
+    fragment,
+    previousHash,
+    rollingHash,
+    opts,
+  ) => {
+    const jobId = ++jobCounter;
+
+    dbgTask('[%s] Reading Rolling Hash from fragment', jobId, fragment);
+
+    const settings = formatSettings(opts?.settings ?? config.settings);
+
+    try {
+      return await pool.getRollingHashFragmentReport(
+        wasm,
+        fragment,
+        previousHash,
+        rollingHash,
+        settings,
+      );
+    } catch {
+      return false;
+    }
+  };
+
   return {
     read,
     readAll,
+    readFragment,
+    readRollingHash,
     dispose: () => pool.dispose(),
   };
 }
