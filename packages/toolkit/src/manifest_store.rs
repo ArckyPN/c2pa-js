@@ -59,7 +59,7 @@ pub async fn get_manifest_store_from_rolling_hash(
     previous_hash: &[u8],
     rolling_hash: &[u8],
     settings: Option<&str>,
-) -> Result<bool> {
+) -> Result<Vec<u8>> {
     if let Some(settings) = settings {
         settings::load_settings_from_str(settings, "json").map_err(Error::from)?;
     }
@@ -68,7 +68,7 @@ pub async fn get_manifest_store_from_rolling_hash(
         &mut fragment,
         rolling_hash,
         previous_hash,
-    ))
+    )?)
 }
 
 #[cfg(test)]

@@ -61,7 +61,7 @@ export function getManifestStoreFromRollingHash(
     previousHash: ArrayBuffer,
     rollingHash: ArrayBuffer,
     settings?: string
-): Promise<boolean>;
+): Promise<Uint8Array>;
 "#;
 
 #[wasm_bindgen(start)]

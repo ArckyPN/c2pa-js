@@ -171,7 +171,7 @@ export interface C2pa {
     previousHash: Uint8Array,
     rollingHash: Uint8Array,
     options?: C2paReadOptions,
-  ): Promise<boolean>;
+  ): Promise<Uint8Array>;
 
   /**
    * Disposer function to clean up the underlying worker pool and any other disposable resources
@@ -341,17 +341,13 @@ export async function createC2pa(config: C2paConfig): Promise<C2pa> {
 
     const settings = formatSettings(opts?.settings ?? config.settings);
 
-    try {
-      return await pool.getRollingHashFragmentReport(
-        wasm,
-        fragment,
-        previousHash,
-        rollingHash,
-        settings,
-      );
-    } catch {
-      return false;
-    }
+    return await pool.getRollingHashFragmentReport(
+      wasm,
+      fragment,
+      previousHash,
+      rollingHash,
+      settings,
+    );
   };
 
   return {
