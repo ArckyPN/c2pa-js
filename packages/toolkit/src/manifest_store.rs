@@ -56,7 +56,7 @@ pub async fn get_manifest_store_data_from_fragment(
 
 pub async fn get_manifest_store_from_rolling_hash(
     fragment_bytes: &[u8],
-    previous_hash: &[u8],
+    anchor_point: &Option<Vec<u8>>,
     rolling_hash: &[u8],
     settings: Option<&str>,
 ) -> Result<Vec<u8>> {
@@ -67,7 +67,7 @@ pub async fn get_manifest_store_from_rolling_hash(
     Ok(Reader::from_rolling_hash_memory_hack(
         &mut fragment,
         rolling_hash,
-        previous_hash,
+        anchor_point,
     )?)
 }
 

@@ -168,8 +168,8 @@ export interface C2pa {
    */
   readRollingHash(
     fragment: ArrayBuffer,
-    previousHash: Uint8Array,
     rollingHash: Uint8Array,
+    anchorPoint?: Uint8Array,
     options?: C2paReadOptions,
   ): Promise<Uint8Array>;
 
@@ -331,7 +331,7 @@ export async function createC2pa(config: C2paConfig): Promise<C2pa> {
 
   const readRollingHash: C2pa['readRollingHash'] = async (
     fragment,
-    previousHash,
+    anchorPoint,
     rollingHash,
     opts,
   ) => {
@@ -344,7 +344,7 @@ export async function createC2pa(config: C2paConfig): Promise<C2pa> {
     return await pool.getRollingHashFragmentReport(
       wasm,
       fragment,
-      previousHash,
+      anchorPoint,
       rollingHash,
       settings,
     );

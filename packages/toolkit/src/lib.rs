@@ -58,8 +58,8 @@ export function getManifestStoreFromFragment(
 
 export function getManifestStoreFromRollingHash(
     fragmentBuffer: ArrayBuffer,
-    previousHash: ArrayBuffer,
     rollingHash: ArrayBuffer,
+    anchorPoint?: ArrayBuffer,
     settings?: string
 ): Promise<Uint8Array>;
 "#;
@@ -205,22 +205,26 @@ pub async fn get_manifest_store_from_fragment(
 #[wasm_bindgen(js_name = getManifestStoreFromRollingHash, skip_typescript)]
 pub async fn get_manifest_from_rolling_hash(
     fragment_buf: JsValue,
-    previous_hash: JsValue,
     rolling_hash: JsValue,
+    anchor_point: JsValue,
     settings: Option<String>,
 ) -> Result<JsValue, JsSysError> {
     let fragment: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(fragment_buf)
         .map_err(Error::SerdeInput)
         .map_err(as_js_error)?;
-    let previous_hash: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(previous_hash)
+    let anchor_point: Option<serde_bytes::ByteBuf> = if anchor_point.is_truthy() {
+        serde_wasm_bindgen::from_value(anchor_point)
         .map_err(Error::SerdeInput)
-        .map_err(as_js_error)?;
+        .map_err(as_js_error)?
+    } else {
+        None
+    };
     let rolling_hash: serde_bytes::ByteBuf = serde_wasm_bindgen::from_value(rolling_hash)
         .map_err(Error::SerdeInput)
         .map_err(as_js_error)?;
     let result = get_manifest_store_from_rolling_hash(
         &fragment,
-        &previous_hash,
+        &anchor_point.map(|ap| ap.to_vec()),
         &rolling_hash,
         settings.as_deref(),
     )

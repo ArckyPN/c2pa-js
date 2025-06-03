@@ -80,15 +80,15 @@ const worker = {
   async getRollingHashFragmentReport(
     wasm: WebAssembly.Module,
     fragment: ArrayBuffer,
-    previousHash: ArrayBuffer,
     rollingHash: ArrayBuffer,
+    anchorPoint?: ArrayBuffer,
     settings?: string,
   ): Promise<Uint8Array> {
     await initToolkit(wasm);
     return getManifestStoreFromRollingHash(
       fragment,
-      previousHash,
       rollingHash,
+      anchorPoint,
       settings,
     );
   },
